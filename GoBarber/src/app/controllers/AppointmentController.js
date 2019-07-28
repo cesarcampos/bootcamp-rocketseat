@@ -5,7 +5,7 @@ import User from '../models/User';
 import File from '../models/File';
 import Appointment from '../models/Appointment';
 import Notification from '../Schemas/Notification';
-import Mail from '../../lib/mail';
+import Mail from '../../lib/Mail';
 
 class AppointmentController {
   async index(req, res) {
@@ -61,6 +61,12 @@ class AppointmentController {
         .json({ error: 'You can only create appointments with providers' });
     }
 
+    if (provider_id === req.userId) {
+      return res
+        .status(401)
+        .json({ error: 'User Id and provider Id cannot be the same' });
+    }
+
     const hourStart = startOfHour(parseISO(date));
 
     if (isBefore(hourStart, new Date())) {
@@ -113,6 +119,11 @@ class AppointmentController {
           as: 'provider',
           attributes: ['name', 'email'],
         },
+        {
+          model: User,
+          as: 'user',
+          attributes: ['id', 'name'],
+        },
       ],
     });
 
@@ -137,7 +148,14 @@ class AppointmentController {
     await Mail.sendMail({
       to: `${appointment.provider.name} <${appointment.provider.email}>`,
       subject: 'Agendamento Cancelado',
-      text: 'Você tem um novo cancelamento',
+      template: 'cancellations',
+      context: {
+        provider: appointment.provider.name,
+        user: appointment.user.name,
+        date: format(appointment.date, "'dia' dd 'de' MMMM', às ' H:mm'h'", {
+          locale: pt,
+        }),
+      },
     });
 
     return res.json(appointment);

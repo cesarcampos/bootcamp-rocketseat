@@ -76,6 +76,14 @@ class UserController {
       provider,
     });
   }
+
+  async index(req, res) {
+    const users = await User.findAll({
+      attributes: ['id', 'name', 'email', 'provider'],
+    });
+
+    return res.json(users);
+  }
 }
 
 export default new UserController();
